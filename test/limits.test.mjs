@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {buckets,detectChanges} from '../lib/limits.mjs';
+const snapshot=(used,reset=2000,duration=300)=>buckets({rateLimits:{limitId:'codex',primary:{usedPercent:used,resetsAt:reset,windowDurationMins:duration}}});
+test('first observation cannot be called a reset',()=>assert.deepEqual(detectChanges(null,snapshot(0),1500),[]));
+test('a deadline without observed recovery is not a reset',()=>assert.deepEqual(detectChanges(snapshot(100),snapshot(100,3000),2500),[]));
+test('normal reset is recorded after recovery and deadline',()=>assert.equal(detectChanges(snapshot(90),snapshot(0,3000),2001)[0].kind,'reset'));
+test('early reset is distinguished from scheduled reset',()=>assert.equal(detectChanges(snapshot(90),snapshot(0,3000),1500)[0].kind,'early_reset'));
+test('partial recovery is never claimed to be a full reset',()=>assert.equal(detectChanges(snapshot(90),snapshot(40,3000),1500)[0].kind,'recovery'));
+test('consumption and sub-percent adjustments cause no alerts',()=>{assert.deepEqual(detectChanges(snapshot(80),snapshot(90),1500),[]);assert.deepEqual(detectChanges(snapshot(80),snapshot(79.7),1500),[]);});
+test('changed window size cannot produce false reset',()=>assert.deepEqual(detectChanges(snapshot(90),snapshot(0,3000,10080),1500),[]));
+test('null windows, empty multi-bucket response and out-of-range percentages',()=>{assert.equal(buckets({rateLimits:{primary:null}})[0].windows.length,0);assert.equal(buckets({rateLimitsByLimitId:{},rateLimits:{primary:{usedPercent:101,resetsAt:2000,windowDurationMins:300}}})[0].windows[0].remaining,0);});
+test('all returned metered buckets are preserved',()=>{const b=buckets({rateLimitsByLimitId:{codex:{primary:{usedPercent:25,resetsAt:1000,windowDurationMins:300}},other:{primary:{usedPercent:50,resetsAt:2000,windowDurationMins:60}}}});assert.equal(b.length,2);assert.equal(b[0].windows[0].remaining,75);});
