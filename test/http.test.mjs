@@ -36,6 +36,15 @@ test('renaming validates input and persists for an isolated account',{timeout:20
     assert.equal((await post({id:'test-account',label:'Nome'},'bad')).status,403);
     assert.equal((await post({id:'test-account',label:' Novo nome '})).status,200);
     assert.equal(JSON.parse(await readFile(join(data,'state.json'),'utf8')).accounts[0].label,'Novo nome');
+    const subscription=(body)=>fetch(base+'/api/subscription',{method:'POST',headers:{Cookie:cookie,'Content-Type':'application/json','X-Pulso-Csrf':state.csrf},body:JSON.stringify(body)});
+    assert.equal((await subscription({id:'test-account',date:'2026-02-31',kind:'period_end'})).status,400);
+    assert.equal((await subscription({id:'missing',date:'2026-12-01',kind:'renewal'})).status,404);
+    assert.equal((await subscription({id:'test-account',date:'2026-12-01',kind:'period_end'})).status,200);
+    const saved=JSON.parse(await readFile(join(data,'state.json'),'utf8')).accounts[0].subscription;
+    assert.equal(saved.date,'2026-12-01');assert.equal(saved.source,'manual');assert.equal(saved.kind,'period_end');
+    const visible=await(await fetch(base+'/api/state',{headers:{Cookie:cookie}})).json();assert.equal(visible.accounts[0].subscription.date,'2026-12-01');
+    assert.equal((await subscription({id:'test-account',date:null})).status,200);
+    assert.equal(JSON.parse(await readFile(join(data,'state.json'),'utf8')).accounts[0].subscription,null);
     await fetch(base+'/api/shutdown',{method:'POST',headers:{Cookie:cookie,'Content-Type':'application/json','X-Pulso-Csrf':state.csrf},body:'{}'});
     await new Promise(r=>child.once('exit',r));
   }finally{child.kill();await rm(data,{recursive:true,force:true});}

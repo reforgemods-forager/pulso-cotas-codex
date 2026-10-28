@@ -7,6 +7,7 @@ import {randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {CodexClient} from './lib/codex.mjs';
 import {buckets,detectChanges} from './lib/limits.mjs';
+import {subscriptionFromInput} from './lib/subscription.mjs';
 
 const ROOT=dirname(fileURLToPath(import.meta.url));
 const STATE=process.env.PULSO_DATA_DIR || join(process.env.LOCALAPPDATA || join(ROOT,'local-data'),'PulsoCotas');
@@ -107,6 +108,11 @@ const server=http.createServer(async(req,res)=>{
       const label=String(data.label||'').trim().slice(0,60)||`Conta ${state.accounts.length+1}`;
       const a={id:randomUUID(),label,source:'isolated',status:'pending',buckets:[],lastSuccess:null,failures:0};state.accounts.push(a);await save();
       try{return json(res,200,{id:a.id,...await beginLogin(a)});}catch(e){a.status='auth_required';await save();throw e;}
+    }
+    if(pathname==='/api/subscription'){
+      const a=state.accounts.find(x=>x.id===data.id);if(!a)return json(res,404,{error:'Conta não encontrada.'});
+      let subscription;try{subscription=subscriptionFromInput(data);}catch{return json(res,400,{error:'Informe uma data válida e o tipo do período.'});}
+      a.subscription=subscription;await save();emit('update');return json(res,200,{ok:true});
     }
     if(pathname==='/api/rename'){
       const a=state.accounts.find(x=>x.id===data.id);if(!a)return json(res,404,{error:'Conta não encontrada.'});

@@ -37,3 +37,7 @@ Documentação: https://learn.chatgpt.com/docs/app-server
 ## Aparência e idioma
 
 O cabeçalho acompanha a rolagem. Os botões no topo controlam a barra lateral, o tema claro/preto, a privacidade dos e-mails e o idioma (português brasileiro, inglês ou espanhol). Essas preferências ficam neste navegador. O lápis ao lado de cada nome permite renomear a conta; o nome é salvo pelo monitor. As notificações nativas do Windows continuam em português.
+
+## Período do Plus
+
+O calendário no rodapé de cada cartão permite registrar o fim do período atual ou a próxima renovação. A consulta `account/read` do Codex usada neste projeto retorna tipo de conta, e-mail e tipo do plano; não fornece a data da assinatura. Por isso, as datas são cadastradas pelo usuário, identificadas como manuais e não são avançadas automaticamente. Consulte a assinatura no ChatGPT antes de preencher e confira a conta selecionada. A expiração de tokens e o reset de cotas não são usados como vencimento do Plus.
